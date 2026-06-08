@@ -1,0 +1,11 @@
+persistence:
+
+  enabled: true
+
+  storageClassName: gp3
+
+  accessMode: ReadWriteOnce
+
+  size: 20Gi
+
+  mountPath: /data

@@ -1,0 +1,11 @@
+persistence:
+
+  enabled: true
+
+  storageClassName: efs-sc
+
+  accessMode: ReadWriteMany
+
+  size: 20Gi
+
+  mountPath: /shared

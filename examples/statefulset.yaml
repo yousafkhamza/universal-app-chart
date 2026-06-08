@@ -1,0 +1,23 @@
+controller:
+  type: StatefulSet
+
+replicaCount: 1
+
+image:
+  repository: redis
+  tag: "7"
+
+service:
+  port: 6379
+  targetPort: 6379
+
+persistence:
+  enabled: true
+
+  storageClassName: gp3
+
+  accessMode: ReadWriteOnce
+
+  size: 10Gi
+
+  mountPath: /data

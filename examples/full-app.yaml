@@ -1,0 +1,60 @@
+image:
+  repository: 123456789012.dkr.ecr.ap-south-1.amazonaws.com/payment-api
+  tag: "1.0.0"
+
+service:
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: alb
+
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+
+  hosts:
+    - host: api.company.internal
+
+      paths:
+        - path: /
+          pathType: Prefix
+
+autoscaling:
+  enabled: true
+
+  minReplicas: 2
+  maxReplicas: 10
+
+persistence:
+  enabled: true
+
+  storageClassName: efs-sc
+  accessMode: ReadWriteMany
+  size: 20Gi
+  mountPath: /shared
+
+serviceAccount:
+  create: true
+
+  name: app-sa
+
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app-role
+
+configMap:
+  enabled: true
+
+  data:
+    APP_ENV: production
+
+secret:
+  enabled: true
+
+  data:
+    DB_PASSWORD: secret
+
+envFrom:
+  configMapRef: test-universal-app-config
+  secretRef: test-universal-app-secret

@@ -1,0 +1,116 @@
+controller:
+  type: Deployment
+
+replicaCount: 2
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  enabled: true
+
+  type: ClusterIP
+
+  port: 80
+
+  targetPort: 80
+
+ingress:
+  enabled: false
+
+  className: alb
+
+  annotations: {}
+
+  hosts: []
+
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+env: []
+
+envFrom:
+  configMapRef: ""
+  secretRef: ""
+
+configMap:
+  enabled: false
+
+  data: {}
+
+secret:
+  enabled: false
+
+  data: {}
+
+serviceAccount:
+  create: false
+
+  name: ""
+
+  annotations: {}
+
+autoscaling:
+  enabled: false
+
+  minReplicas: 1
+  maxReplicas: 5
+
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+persistence:
+  enabled: false
+
+  storageClassName: ""
+
+  accessMode: ReadWriteOnce
+
+  size: 10Gi
+
+  mountPath: /data
+
+probes:
+  enabled: true
+
+  startup:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+  liveness:
+    path: /
+    initialDelaySeconds: 120
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 10
+
+  readiness:
+    path: /
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 10
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

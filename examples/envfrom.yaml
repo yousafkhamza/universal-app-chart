@@ -1,0 +1,16 @@
+configMap:
+  enabled: true
+
+  data:
+    APP_ENV: production
+
+secret:
+  enabled: true
+
+  data:
+    DB_PASSWORD: secret
+
+envFrom:
+  configMapRef: test-universal-app-config
+
+  secretRef: test-universal-app-secret

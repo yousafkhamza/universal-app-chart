@@ -1,0 +1,68 @@
+{{- if eq .Values.controller.type "StatefulSet" }}
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: {{ include "universal-app.fullname" . }}
+
+spec:
+
+  serviceName: {{ include "universal-app.fullname" . }}
+
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "universal-app.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+
+  template:
+
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "universal-app.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+
+    spec:
+
+      containers:
+
+        - name: {{ include "universal-app.name" . }}
+
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+
+{{- if .Values.persistence.enabled }}
+
+          volumeMounts:
+            - name: app-storage
+              mountPath: {{ .Values.persistence.mountPath }}
+
+{{- end }}
+
+{{- if .Values.persistence.enabled }}
+
+  volumeClaimTemplates:
+    - metadata:
+        name: app-storage
+
+      spec:
+
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+
+        storageClassName: {{ .Values.persistence.storageClassName }}
+
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+
+{{- end }}
+
+{{- end }}

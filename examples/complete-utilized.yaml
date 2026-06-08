@@ -1,0 +1,150 @@
+controller:
+  type: Deployment
+
+replicaCount: 2
+
+fullnameOverride: sample-app
+
+image:
+  repository: nginx
+  tag: "1.27"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: regcred
+
+service:
+  enabled: true
+
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: true
+
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+  hosts:
+    - host: api.example.internal
+      paths:
+        - path: /
+          pathType: Prefix
+        - path: /health
+          pathType: Prefix
+
+  tls:
+    - hosts:
+        - api.example.internal
+      secretName: api-example-tls
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+env:
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx512m"
+
+  - name: TZ
+    value: UTC
+
+configMap:
+  enabled: true
+
+  data:
+    APP_ENV: production
+    LOG_LEVEL: INFO
+    FEATURE_FLAG: enabled
+
+secret:
+  enabled: true
+
+  data:
+    DB_USER: appuser
+    DB_PASSWORD: supersecret
+    API_KEY: sample-api-key
+
+envFrom:
+  configMapRef: sample-enterprise-api-config
+  secretRef: sample-enterprise-api-secret
+
+serviceAccount:
+
+  create: true
+
+  name: app-sa
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app-role
+
+autoscaling:
+  enabled: true
+
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+persistence:
+  enabled: true
+
+  storageClassName: efs-sc
+  accessMode: ReadWriteMany
+  size: 20Gi
+  mountPath: /shared
+
+probes:
+  enabled: true
+
+  startup:
+    path: /actuator/health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+
+  liveness:
+    path: /actuator/health
+    initialDelaySeconds: 120
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 10
+
+  readiness:
+    path: /actuator/health
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 10
+
+nodeSelector:
+  kubernetes.io/os: linux
+
+tolerations:
+  - key: workload
+    operator: Equal
+    value: application
+    effect: NoSchedule
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - universal-app
