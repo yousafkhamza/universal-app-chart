@@ -1,162 +1,290 @@
 # Universal App Helm Chart
 
-Reusable Helm chart for deploying applications on AWS EKS.
+A reusable Helm chart for deploying applications on AWS EKS.
 
-## Features
+This chart provides a standardized way to deploy containerized workloads while supporting common Kubernetes and AWS EKS features such as:
 
-- Deployment
-- StatefulSet
-- Service
-- ALB Ingress
-- HPA
-- EBS Storage
-- EFS Storage
-- ConfigMap
-- Secret
-- envFrom
-- IRSA
-- ServiceAccount
-
----
-
-# Prerequisites
-
-See:
-
-install-before/
-
-Required components:
-
-- AWS Load Balancer Controller
-- AWS EBS CSI Driver
-- Metrics Server
-
-Optional:
-
-- AWS EFS CSI Driver
-- IRSA
+* Deployment
+* StatefulSet
+* Service
+* ALB Ingress
+* Horizontal Pod Autoscaler (HPA)
+* ConfigMap
+* Secret
+* envFrom
+* EBS Storage
+* EFS Storage
+* IRSA (IAM Roles for Service Accounts)
+* ServiceAccount
+* NodeSelector
+* Tolerations
+* Affinity
 
 ---
 
-# Install
+## Repository Structure
 
-Clone repository:
-
-```bash
-git clone https://github.com/<your-github>/universal-app-chart.git
-
-cd universal-app-chart
+```text
+universal-app-chart/
+│
+├── Chart.yaml
+├── values.yaml
+├── README.md
+├── FEATURES.md
+├── CHANGELOG.md
+├── LICENSE
+│
+├── templates/
+│   ├── _helpers.tpl
+│   ├── deployment.yaml
+│   ├── statefulset.yaml
+│   ├── service.yaml
+│   ├── ingress.yaml
+│   ├── hpa.yaml
+│   ├── pvc.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   └── serviceaccount.yaml
+│
+├── examples/
+│   ├── basic-app.yaml
+│   ├── full-app.yaml
+│   ├── complete-utilized.yaml
+│   ├── alb-ingress.yaml
+│   ├── efs-storage.yaml
+│   ├── ebs-gp3-storage.yaml
+│   ├── hpa.yaml
+│   ├── irsa.yaml
+│   ├── configmap.yaml
+│   ├── secret.yaml
+│   ├── envfrom.yaml
+│   └── statefulset.yaml
+│
+└── install-before/
+    ├── README.md
+    ├── aws-load-balancer-controller.md
+    ├── ebs-csi-driver.md
+    ├── efs-csi-driver.md
+    ├── metrics-server.md
+    ├── irsa.md
+    │
+    ├── storageclasses/
+    │   ├── gp3-sc.yaml
+    │   └── efs-sc.yaml
+    │
+    └── examples/
+        ├── alb-values.yaml
+        ├── ebs-values.yaml
+        ├── efs-values.yaml
+        ├── hpa-values.yaml
+        └── irsa-values.yaml
 ```
 
-Lint chart:
+---
+
+## Prerequisites
+
+For AWS EKS environments, the following components are recommended:
+
+### Required
+
+* AWS Load Balancer Controller
+* AWS EBS CSI Driver
+* Metrics Server
+
+### Optional
+
+* AWS EFS CSI Driver
+* IRSA (IAM Roles for Service Accounts)
+
+Refer to the `install-before/` directory for setup instructions.
+
+---
+
+## Add Helm Repository
 
 ```bash
-helm lint .
+helm repo add universal-app \
+https://yousafkhamza.github.io/universal-app-chart
+
+helm repo update
 ```
 
-Render manifests:
+Verify:
 
 ```bash
-helm template myapp .
+helm search repo universal-app
 ```
 
-Install:
+---
+
+## Quick Start
+
+Deploy using default values:
 
 ```bash
-helm install myapp .
+helm install my-app \
+universal-app/universal-app
+```
+
+Deploy to a specific namespace:
+
+```bash
+helm install my-app \
+universal-app/universal-app \
+-n test \
+--create-namespace
+```
+
+---
+
+## Deploy Using Custom Values
+
+```bash
+helm install payment-api \
+universal-app/universal-app \
+-f values.yaml
 ```
 
 Upgrade:
 
 ```bash
-helm upgrade myapp .
-```
-
-Delete:
-
-```bash
-helm uninstall myapp
-```
-
----
-
-# Using Custom Values
-
-```bash
-helm install myapp . \
+helm upgrade payment-api \
+universal-app/universal-app \
 -f values.yaml
 ```
 
-Example:
+Uninstall:
 
 ```bash
-helm install payment-api . \
--f examples/full-app.yaml
+helm uninstall payment-api
 ```
 
 ---
 
-# Combine Features
+## Example Configurations
 
-ALB + EFS + HPA:
+### Basic Application
 
 ```bash
-helm install payment-api . \
--f examples/alb-ingress.yaml \
--f examples/efs-storage.yaml \
+helm install app \
+universal-app/universal-app \
+-f examples/basic-app.yaml
+```
+
+### ALB Ingress
+
+```bash
+helm install app \
+universal-app/universal-app \
+-f examples/alb-ingress.yaml
+```
+
+### EFS Storage
+
+```bash
+helm install app \
+universal-app/universal-app \
+-f examples/efs-storage.yaml
+```
+
+### EBS Storage
+
+```bash
+helm install app \
+universal-app/universal-app \
+-f examples/ebs-gp3-storage.yaml
+```
+
+### Horizontal Pod Autoscaler
+
+```bash
+helm install app \
+universal-app/universal-app \
 -f examples/hpa.yaml
 ```
 
-ALB + IRSA + HPA:
+### IRSA
 
 ```bash
-helm install payment-api . \
--f examples/alb-ingress.yaml \
--f examples/irsa.yaml \
--f examples/hpa.yaml
+helm install app \
+universal-app/universal-app \
+-f examples/irsa.yaml
 ```
 
----
-
-# Deployment Example
-
-```yaml
-image:
-  repository: 123456789012.dkr.ecr.ap-south-1.amazonaws.com/payment-api
-  tag: "1.0.0"
-
-service:
-  port: 8080
-  targetPort: 8080
-```
-
-Install:
+### StatefulSet
 
 ```bash
-helm install payment-api . \
--f app-values.yaml
+helm install redis \
+universal-app/universal-app \
+-f examples/statefulset.yaml
+```
+
+### Complete Feature Example
+
+```bash
+helm install app \
+universal-app/universal-app \
+-f examples/complete-utilized.yaml
 ```
 
 ---
 
-# StatefulSet Example
+## Features
 
-```yaml
-controller:
-  type: StatefulSet
-```
+The chart supports:
 
-Example use cases:
+| Feature        | Supported |
+| -------------- | --------- |
+| Deployment     | Yes       |
+| StatefulSet    | Yes       |
+| Service        | Yes       |
+| ALB Ingress    | Yes       |
+| HPA            | Yes       |
+| ConfigMap      | Yes       |
+| Secret         | Yes       |
+| envFrom        | Yes       |
+| EBS Storage    | Yes       |
+| EFS Storage    | Yes       |
+| IRSA           | Yes       |
+| ServiceAccount | Yes       |
+| NodeSelector   | Yes       |
+| Tolerations    | Yes       |
+| Affinity       | Yes       |
 
-- PostgreSQL
-- Redis
-- Elasticsearch
-- RabbitMQ
+For detailed examples and configuration options, see `FEATURES.md`.
 
 ---
 
-# Version
+## AWS EKS Documentation
 
-Current Version:
+Additional setup guides are available in:
 
-v1.0.0
+```text
+install-before/
+```
+
+Including:
+
+* AWS Load Balancer Controller
+* AWS EBS CSI Driver
+* AWS EFS CSI Driver
+* Metrics Server
+* IRSA Configuration
+* StorageClass Examples
+
+---
+
+## Release Notes
+
+See:
+
+```text
+CHANGELOG.md
+```
+
+---
+
+## License
+
+MIT License
