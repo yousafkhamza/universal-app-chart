@@ -1,0 +1,174 @@
+name: Release Helm Chart
+
+# Manual only — nothing runs automatically on push. Trigger this from the
+# Actions tab whenever you actually want to cut a new chart version.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: "Only used when bump = custom, e.g. 1.4.0"
+        required: false
+        type: string
+      release_notes:
+        description: "Changelog / release notes for this version"
+        required: false
+        type: string
+      dry_run:
+        description: "Dry run — lint/package/render only, no commit/tag/release"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: helm-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.3
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute new version
+        id: version
+        run: |
+          set -euo pipefail
+          current=$(grep -m1 '^version:' Chart.yaml | awk '{print $2}')
+          echo "Current chart version: $current"
+
+          IFS='.' read -r major minor patch <<< "$current"
+
+          case "${{ inputs.bump }}" in
+            custom)
+              new="${{ inputs.custom_version }}"
+              if [ -z "$new" ]; then
+                echo "::error::bump=custom requires custom_version to be set"
+                exit 1
+              fi
+              if ! [[ "$new" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "::error::custom_version '$new' is not valid semver (X.Y.Z)"
+                exit 1
+              fi
+              ;;
+            major) new="$((major + 1)).0.0" ;;
+            minor) new="${major}.$((minor + 1)).0" ;;
+            patch) new="${major}.${minor}.$((patch + 1))" ;;
+            *)
+              echo "::error::Unknown bump type: ${{ inputs.bump }}"
+              exit 1
+              ;;
+          esac
+
+          if [ "$new" = "$current" ]; then
+            echo "::error::New version ($new) is the same as the current version"
+            exit 1
+          fi
+
+          if git rev-parse "v$new" >/dev/null 2>&1; then
+            echo "::error::Tag v$new already exists"
+            exit 1
+          fi
+
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          echo "### Releasing v$new (from v$current)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Bump Chart.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.version.outputs.new }}/" Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"${{ steps.version.outputs.new }}\"/" Chart.yaml
+          grep -E '^(version|appVersion):' Chart.yaml
+
+      - name: helm lint
+        run: helm lint .
+
+      - name: helm template (sanity render, default values)
+        run: helm template release-check . > /tmp/rendered-default.yaml
+
+      - name: helm template (sanity render, complete-utilized example)
+        run: helm template release-check . -f examples/complete-utilized.yaml > /tmp/rendered-full.yaml
+
+      - name: Package chart
+        run: helm package .
+
+      - name: Update index.yaml
+        run: |
+          helm repo index . \
+            --url https://yousafkhamza.github.io/universal-app-chart \
+            --merge index.yaml
+
+      - name: Prepend CHANGELOG.md entry
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          NOTES="${{ inputs.release_notes }}"
+          if [ -z "$NOTES" ]; then
+            NOTES="No notes provided for this release."
+          fi
+          touch CHANGELOG.md
+          {
+            echo "## [${{ steps.version.outputs.new }}] - $DATE"
+            echo ""
+            echo "$NOTES"
+            echo ""
+            cat CHANGELOG.md
+          } > CHANGELOG.md.new
+          mv CHANGELOG.md.new CHANGELOG.md
+
+      - name: Show what would be committed (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          echo "Dry run — not committing, tagging, pushing, or releasing."
+          git status
+          git diff -- Chart.yaml CHANGELOG.md index.yaml || true
+          ls -la universal-app-${{ steps.version.outputs.new }}.tgz
+
+      - name: Commit and push
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          git add Chart.yaml index.yaml CHANGELOG.md "universal-app-${{ steps.version.outputs.new }}.tgz"
+          git commit -m "release: v${{ steps.version.outputs.new }}"
+          git tag -a "v${{ steps.version.outputs.new }}" -m "v${{ steps.version.outputs.new }}"
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.new }}"
+
+      - name: Create GitHub Release
+        if: ${{ inputs.dry_run != true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.new }}
+          name: v${{ steps.version.outputs.new }}
+          body: ${{ inputs.release_notes }}
+          files: universal-app-${{ steps.version.outputs.new }}.tgz
+
+      - name: Summary
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          echo "Released **v${{ steps.version.outputs.new }}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub Pages will pick up the new index.yaml within a couple of minutes." >> "$GITHUB_STEP_SUMMARY"

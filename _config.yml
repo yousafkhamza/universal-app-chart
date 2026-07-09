@@ -1,0 +1,20 @@
+theme: jekyll-theme-cayman
+
+title: Universal App Helm Chart
+description: A reusable, production-ready Helm chart for deploying applications on AWS EKS
+
+show_downloads: true
+
+github:
+  is_project_page: true
+  repository_url: https://github.com/yousafkhamza/universal-app-chart
+
+markdown: kramdown
+
+# Only exclude docs-irrelevant source folders from the Jekyll build.
+# IMPORTANT: do NOT exclude *.tgz or index.yaml — Pages must keep serving
+# those as-is, or `helm repo add` / `helm repo update` will break.
+exclude:
+  - install-before/
+  - templates/
+  - .helmignore

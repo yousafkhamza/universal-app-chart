@@ -1,3 +1,21 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Helm-v3-0F1689?logo=helm&logoColor=white" alt="Helm v3">
+  <img src="https://img.shields.io/github/v/tag/yousafkhamza/universal-app-chart?label=chart%20version&color=blue" alt="Chart Version">
+  <img src="https://img.shields.io/badge/Kubernetes-EKS-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes EKS">
+  <img src="https://img.shields.io/github/license/yousafkhamza/universal-app-chart" alt="License">
+</p>
+
+<p align="center">
+  <a href="#quick-start"><b>Quick Start</b></a> ·
+  <a href="#features"><b>Features</b></a> ·
+  <a href="FEATURES.md"><b>Full Docs</b></a> ·
+  <a href="CHANGELOG.md"><b>Changelog</b></a> ·
+  <a href="RELEASING.md"><b>Releasing</b></a> ·
+  <a href="https://github.com/yousafkhamza/universal-app-chart"><b>GitHub</b></a>
+</p>
+
+---
+
 # Universal App Helm Chart
 
 A reusable Helm chart for deploying applications on AWS EKS.

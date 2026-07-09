@@ -1,3 +1,9 @@
-*.tgz
-index.yaml
+# Local render/debug output — never commit these
 output.yaml
+rendered-*.yaml
+*.tmp
+.DS_Store
+
+# NOTE: *.tgz and index.yaml are intentionally NOT ignored.
+# This repo IS the Helm chart repository — the packaged .tgz files and
+# index.yaml must be committed for GitHub Pages / `helm repo add` to work.
