@@ -1,3 +1,7 @@
+## [1.0.1] - 2026-07-09
+
+No notes provided for this release.
+
 ## [1.0.0] - 2026-06-08
 
 Initial public release of the Universal App Helm Chart.
