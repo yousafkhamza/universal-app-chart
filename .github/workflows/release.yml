@@ -55,11 +55,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Normalize Chart.yaml line endings (CRLF -> LF)
+        run: sed -i 's/\r$//' Chart.yaml
+
       - name: Compute new version
         id: version
         run: |
           set -euo pipefail
-          current=$(grep -m1 '^version:' Chart.yaml | awk '{print $2}')
+          current=$(grep -m1 '^version:' Chart.yaml | awk '{print $2}' | tr -d '\r\n')
           echo "Current chart version: $current"
 
           IFS='.' read -r major minor patch <<< "$current"
